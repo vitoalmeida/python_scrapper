@@ -49,7 +49,26 @@ def convert_files_to_markdown(repo_dir):
             readme_content = f.read()
 
     logging.info(
-        "Looping through all files and folders and corveting to markdown...")
+        "Looping through all files and folders and converting to markdown...")
+
+    total_length = 0
+    file_num = 1
+    curr_file_content = ""
+    last_file_readme = False
+
+    # Checkpoint 5 #
+    def save_curr_file():
+        nonlocal curr_file_content, file_num
+        if len(curr_file_content) > 0:
+            curr_file_path = os.path.join(
+                markdowns_folder, f'single_markdown_{file_num}.md')
+            with open(curr_file_path, 'w', encoding='utf-8') as md_file:
+                md_file.write(curr_file_content)
+            logging.info(
+                f"Single markdown file {file_num} successfully generated!")
+            curr_file_content = ""
+            file_num += 1
+
     for root, dirs, files in os.walk(repo_dir):
         # Ignore any folders with ignored names
         dirs[:] = [d for d in dirs if d not in ignored_files_extensions]
@@ -78,15 +97,33 @@ def convert_files_to_markdown(repo_dir):
             markdown_content += content
             markdown_content += "\n```\n"
 
+            total_length += len(content)
+
+            if total_length > 10000:
+                if last_file_readme:
+                    save_curr_file()
+                    curr_file_content += markdown_content
+                    markdown_content = ""
+                    total_length = len(markdown_content)
+                    last_file_readme = False
+                else:
+                    save_curr_file()
+                    curr_file_content += markdown_content
+                    markdown_content = ""
+                    total_length = 0
+                    last_file_readme = True
+
     logging.info("Adding readme content to single_markdown file beginning...")
     if readme_content:
         markdown_content = f"### README\n\n{readme_content}\n\n" + \
             markdown_content
 
-    # Save the Markdown content to a file
-    markdown_file_path = os.path.join(markdowns_folder, 'single_markdown.md')
-    with open(markdown_file_path, 'w', encoding='utf-8') as md_file:
-        md_file.write(markdown_content)
+    # Save the last Markdown content to a file
+    curr_file_content += markdown_content
+    save_curr_file()
+
+    logging.info(
+        "\033[92mMarkdown single file(s) successfully generated!\033[0m")
 
 
 def remove_readonly(func, path, _):
