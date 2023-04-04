@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.INFO,
                     format='[%(levelname)s - %(asctime)s]: %(message)s', datefmt='%H:%M:%S')
 
 ignored_files_extensions = ('.git', '.exe', '.lock', 'LICENSE')
-characters_limit = 5000
+characters_limit = 6000
 
 
 def clone_repository(github_token, repo_name):
@@ -62,7 +62,6 @@ def convert_files_to_markdown(repo_dir):
     file_num = 1
     curr_file_content = ""
     last_file_readme = False
-    characters_limit = 6000
 
     def save_curr_file():
         nonlocal curr_file_content, file_num
