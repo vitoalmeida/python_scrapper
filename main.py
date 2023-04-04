@@ -23,13 +23,13 @@ def clone_repository(github_token, repo_name):
 def convert_files_to_markdown(repo_dir):
     markdown_renderer = mistune.create_markdown()
 
-    print("Creating markdowns folder...")
     markdowns_folder = os.path.join(os.getcwd(), 'markdowns')
 
     if os.path.exists(markdowns_folder):
         print("Deleting existing markdowns folder...")
         shutil.rmtree(markdowns_folder)
 
+    print("Creating markdowns folder...")
     os.makedirs(markdowns_folder, exist_ok=True)
 
     print("Converting files to Markdown...")

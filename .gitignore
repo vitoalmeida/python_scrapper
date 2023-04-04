@@ -112,3 +112,6 @@ venv/
 
 # generated markdown files
 markdowns/
+
+# .env file
+.env
