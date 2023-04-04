@@ -13,7 +13,8 @@ from dotenv import load_dotenv
 logging.basicConfig(level=logging.INFO,
                     format='[%(levelname)s - %(asctime)s]: %(message)s', datefmt='%H:%M:%S')
 
-ignored_files_extensions = ('.git', '.exe')
+ignored_files_extensions = ('.git', '.exe', '.lock', 'LICENSE')
+characters_limit = 6000
 
 
 def clone_repository(github_token, repo_name):
@@ -49,7 +50,31 @@ def convert_files_to_markdown(repo_dir):
             readme_content = f.read()
 
     logging.info(
-        "Looping through all files and folders and corveting to markdown...")
+        "Adding readme content to single_markdown file beginning...")
+    if readme_content:
+        markdown_content = f"### README\n\n{readme_content}\n\n" + \
+            markdown_content
+
+    logging.info(
+        "Looping through all files and folders and converting to markdown...")
+
+    total_length = 0
+    file_num = 1
+    curr_file_content = ""
+    last_file_readme = False
+
+    def save_curr_file():
+        nonlocal curr_file_content, file_num
+        if len(curr_file_content) > 0:
+            curr_file_path = os.path.join(
+                markdowns_folder, f'single_markdown_{file_num}.md')
+            with open(curr_file_path, 'w', encoding='utf-8') as md_file:
+                md_file.write(curr_file_content)
+            logging.info(
+                f"Single markdown file {file_num} successfully generated!")
+            curr_file_content = ""
+            file_num += 1
+
     for root, dirs, files in os.walk(repo_dir):
         # Ignore any folders with ignored names
         dirs[:] = [d for d in dirs if d not in ignored_files_extensions]
@@ -57,7 +82,7 @@ def convert_files_to_markdown(repo_dir):
             file_path = os.path.join(root, file)
 
             # Check if file extension is ignored
-            if file.endswith(ignored_files_extensions) or (file.lower() == 'readme.md' and root == repo_dir):
+            if file.endswith(ignored_files_extensions) or (file == 'README.md' and root == repo_dir):
                 continue
 
             # Detect the file encoding
@@ -76,17 +101,32 @@ def convert_files_to_markdown(repo_dir):
             markdown_content += f"\n\n### FILE: {relative_path}\n"
             markdown_content += "```sh\n"
             markdown_content += content
-            markdown_content += "\n```\n"
+            markdown_content += "\n```"
 
-    logging.info("Adding readme content to single_markdown file beginning...")
-    if readme_content:
-        markdown_content = f"### README\n\n{readme_content}\n\n" + \
-            markdown_content
+            total_length += len(content)
+            if total_length > characters_limit:
+                if last_file_readme or len(markdown_content) > 5000:
+                    save_curr_file()
+                    curr_file_content += markdown_content
+                    markdown_content = ""
+                    total_length = len(markdown_content)
+                    last_file_readme = False
+                else:
+                    save_curr_file()
+                    # markdown_content = markdown_content[len(content):]
+                    # total_length = len(markdown_content)
+                    # last_file_readme = False
+                    curr_file_content += markdown_content
+                    markdown_content = ""
+                    total_length = 0
+                    last_file_readme = True
 
-    # Save the Markdown content to a file
-    markdown_file_path = os.path.join(markdowns_folder, 'single_markdown.md')
-    with open(markdown_file_path, 'w', encoding='utf-8') as md_file:
-        md_file.write(markdown_content)
+    # Save the last Markdown content to a file
+    curr_file_content += markdown_content
+    save_curr_file()
+
+    logging.info(
+        "\033[92mMarkdown single file(s) successfully generated!\033[0m")
 
 
 def remove_readonly(func, path, _):
@@ -101,7 +141,7 @@ def main():
 
         access_token = os.environ["GITHUB_TOKEN"]
         # Replace with the desired repo name (format: username/repo)
-        repo_name = "vitoalmeida/python_scrapper"
+        repo_name = "actix/examples"
 
         # Clone the repository
         cloned_repo = clone_repository(access_token, repo_name)
@@ -109,16 +149,16 @@ def main():
         # Convert all files in the repository to a single Markdown
         convert_files_to_markdown(cloned_repo.working_dir)
 
-        markdown_file_path = os.path.join(
-            os.getcwd(), 'markdowns', 'single_markdown.md')
+        markdowns_folder = os.path.join(os.getcwd(), 'markdowns')
+        markdowns_items_length = len(os.listdir(markdowns_folder))
 
         # Test if the Markdown file was generated
-        if os.path.exists(markdown_file_path):
+        if os.path.exists(markdowns_folder) and markdowns_items_length > 0:
             logging.info(
-                "\033[92mMarkdown single file successfully generated!\033[0m")
+                f"\033[92mMarkdowns folder was generated with \033[1m{markdowns_items_length}\033[92m file(s)!\033[0m")
         else:
             logging.error(
-                "\033[91mFailed to generate markdown single file!\033[0m")
+                "\033[91mMarkdowns folder is empty!\033[0m")
 
         # Cleanup temporary directory
         shutil.rmtree(cloned_repo.working_dir, onerror=remove_readonly)
