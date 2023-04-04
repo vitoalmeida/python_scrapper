@@ -111,4 +111,4 @@ dmypy.json
 venv/
 
 # generated markdown files
-/markdowns
+markdowns/
