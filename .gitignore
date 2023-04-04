@@ -109,3 +109,6 @@ dmypy.json
 
 # virtual environment
 venv/
+
+# generated markdown files
+/markdowns
